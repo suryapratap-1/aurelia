@@ -1,26 +1,207 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: the reduced-motion block must override every component's own timing */
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Palette sampled from the specified materials (see DIRECTION.md). Bronze is the only accent:
+   call to action, door-swing arcs, focus ring. */
+@theme {
+  --color-ivory: #f2ede4;
+  --color-ivory-2: #e9e2d6;
+  --color-paper: #faf7f1;
+  --color-stone: #b9ae9c;
+  --color-oak: #a47c57;
+  --color-bronze: #8a6a45;
+  --color-bronze-deep: #6e5232;
+  --color-charcoal: #1f1d1a;
+  --color-ink: #2a2724;
+  --color-mute: #6d655b;
+  --color-line: #d6cdbf;
+
+  --font-display: var(--font-display), "Iowan Old Style", "Times New Roman", serif;
+  --font-sans: var(--font-text), ui-sans-serif, system-ui, sans-serif;
+
+  --ease-door: cubic-bezier(0.7, 0, 0.2, 1);
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --text-display: clamp(3.2rem, 8.4vw, 9rem);
+  --text-title: clamp(2.2rem, 4.6vw, 4.6rem);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    background: var(--color-ivory);
+    color: var(--color-ink);
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    line-height: 1.5;
+    font-feature-settings: "kern";
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    text-wrap: balance;
+    letter-spacing: -0.018em;
+    line-height: 0.98;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  ::selection {
+    background: var(--color-bronze);
+    color: var(--color-paper);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-bronze);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .skip-link {
+    position: fixed;
+    left: 1rem;
+    top: -4rem;
+    z-index: 100;
+    background: var(--color-charcoal);
+    color: var(--color-paper);
+    padding: 0.7rem 1rem;
+    transition: top 0.2s;
+  }
+  .skip-link:focus {
+    top: 1rem;
+  }
+
+  /* caps labels: real data only (levels, areas), tracked open */
+  .label {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--color-mute);
+  }
+
+  .wrap {
+    width: min(100% - 2rem, 88rem);
+    margin-inline: auto;
+  }
+  @media (min-width: 768px) {
+    .wrap {
+      width: min(100% - 4rem, 88rem);
+    }
+  }
+
+  /* the bronze call to action; the hover draws a door-swing arc in the corner */
+  .btn-door {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.95rem 1.5rem 0.95rem 1.4rem;
+    background: var(--color-bronze);
+    color: var(--color-paper);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    overflow: hidden;
+    transition: background-color 0.4s var(--ease-settle);
+  }
+  .btn-door::after {
+    content: "";
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-top-left-radius: 100%;
+    border-top: 1px solid currentColor;
+    border-left: 1px solid currentColor;
+    opacity: 0.55;
+    transform-origin: 100% 100%;
+    transform: scale(0.4);
+    transition: transform 0.6s var(--ease-door);
+  }
+  .btn-door:hover {
+    background: var(--color-bronze-deep);
+  }
+  .btn-door:hover::after {
+    transform: scale(1);
+  }
+
+  .link-line {
+    background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+    transition: background-size 0.5s var(--ease-settle);
+  }
+  .link-line:hover,
+  .link-line:focus-visible {
+    background-size: 100% 1px;
+  }
+}
+
+/* the fixed 3D layer */
+.world-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: #b9a28b;
+}
+html[data-world="off"] .world-layer {
+  visibility: hidden;
+}
+
+/* the swing: a quarter-circle that closes over the view about one hinge and opens about the other */
+#swing {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  visibility: hidden;
+  background: var(--color-ivory);
+  clip-path: circle(calc(var(--swing, 0) * 150vmax) at calc(var(--hinge, 0) * 100%) 100%);
+}
+
+/* reveal words, driven by GSAP; visible by default so no-JS and reduced motion read normally */
+.line-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* still rendering: only the 3D layer */
+html[data-clean="1"] main,
+html[data-clean="1"] header,
+html[data-clean="1"] footer,
+html[data-clean="1"] .skip-link {
+  display: none;
 }

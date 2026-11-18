@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# raw asset downloads (not used by the site)
+/assets-src/
+*.tsbuildinfo
+.env*
